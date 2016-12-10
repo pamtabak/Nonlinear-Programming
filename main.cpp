@@ -121,7 +121,6 @@ double goldenSectionSearch (double eps, double ro, vector<double> x0, vector<dou
 
 	while ((b - a) >  eps)
 	{
-		// cout << u << "," << v << endl;
 		if (phi(u, x0, d, function) < phi(v, x0, d, function))
 		{
 			b = v;
@@ -146,7 +145,7 @@ vector<double> gradientMethod (vector<double> x0,int iterationLimit, double (*fu
 	vector<double> lastXk = x0;
 	vector<double> xk = x0;
 
-	while (!vectorIsZero(xk, 0.001) && k <= iterationLimit)
+	while (!vectorIsZero(derivedFunction(xk), 0.001) && k <= iterationLimit)
 	{
 		cout << "current interaction: ";
 		cout << k << endl;
@@ -158,13 +157,11 @@ vector<double> gradientMethod (vector<double> x0,int iterationLimit, double (*fu
 		}
 		
 		double tk = goldenSectionSearch(0.00001, 5, xk, dk, function);
-		cout << tk << endl;
 
 		for (int i = 0; i < xk.size(); i++)
 		{
 			lastXk[i] = xk[i];
-			xk[i] = xk[i] + tk*dk[i];
-			cout << "    " << xk[i] << endl;
+			xk[i]     = xk[i] + tk*dk[i];
 		}
 		k = k + 1;
 
@@ -183,10 +180,10 @@ int main(int argc, char const *argv[])
 	vector<double> x0;
 	x0.push_back(1.0);
 	x0.push_back(1.0);
-	vector<double> min = gradientMethod(x0, 10000, function1, derivedFunction1);
-	// for (int i = 0; i < min.size(); i++)
-	// {
-	// 	cout << min[i] << endl;
-	// }
+	vector<double> min = gradientMethod(x0, 100, function1, derivedFunction1);
+	for (int i = 0; i < min.size(); i++)
+	{
+		cout << min[i] << endl;
+	}
 	return 0;
 }
