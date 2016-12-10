@@ -82,6 +82,22 @@ bool vectorIsZero (vector<double> x, double eps)
 	return true;
 }
 
+bool vectorHasChanged (vector<double> x0, vector<double> x1, double eps)
+{
+	double result = 0.0;
+	for (int i = 0; i < x0.size(); i++)
+	{
+		result += pow (x1[i] - x0[i], 2);
+	}
+	result = sqrt(result);
+
+	if (result < eps)
+	{
+		return false;
+	}
+	return true;
+}
+
 // CHECAR SE A FUNCAO E UNIMODAL
 double goldenSectionSearch (double eps, double ro, vector<double> x0, vector<double> d, double (*function)(vector<double>))
 {
@@ -105,6 +121,7 @@ double goldenSectionSearch (double eps, double ro, vector<double> x0, vector<dou
 
 	while ((b - a) >  eps)
 	{
+		// cout << u << "," << v << endl;
 		if (phi(u, x0, d, function) < phi(v, x0, d, function))
 		{
 			b = v;
@@ -126,7 +143,9 @@ vector<double> gradientMethod (vector<double> x0,int iterationLimit, double (*fu
 {
 	cout << "started gradient method" << endl;
 	int k = 0;
+	vector<double> lastXk = x0;
 	vector<double> xk = x0;
+
 	while (!vectorIsZero(xk, 0.001) && k <= iterationLimit)
 	{
 		cout << "current interaction: ";
@@ -138,13 +157,21 @@ vector<double> gradientMethod (vector<double> x0,int iterationLimit, double (*fu
 			dk[i] = -1.0*dk[i];
 		}
 		
-		double tk = goldenSectionSearch(0.00001, 1, xk, dk, function);
+		double tk = goldenSectionSearch(0.00001, 5, xk, dk, function);
+		cout << tk << endl;
 
 		for (int i = 0; i < xk.size(); i++)
 		{
+			lastXk[i] = xk[i];
 			xk[i] = xk[i] + tk*dk[i];
+			cout << "    " << xk[i] << endl;
 		}
 		k = k + 1;
+
+		if (!vectorHasChanged(lastXk, xk, 0.00001))
+		{
+			break;
+		}
 	}
 
 	return xk;
@@ -154,12 +181,12 @@ int main(int argc, char const *argv[])
 {
 	cout << "Hello World" << endl;
 	vector<double> x0;
-	x0.push_back(0.1);
-	x0.push_back(0.2);
-	vector<double> min = gradientMethod(x0, 1000, function1, derivedFunction1);
-	for (int i = 0; i < min.size(); i++)
-	{
-		cout << min[i] << endl;
-	}
+	x0.push_back(1.0);
+	x0.push_back(1.0);
+	vector<double> min = gradientMethod(x0, 10000, function1, derivedFunction1);
+	// for (int i = 0; i < min.size(); i++)
+	// {
+	// 	cout << min[i] << endl;
+	// }
 	return 0;
 }
