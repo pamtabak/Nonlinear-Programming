@@ -1,6 +1,8 @@
 #include <iostream>
+#include <Eigen/Dense>
 
 using namespace std;
+using namespace Eigen;
 
 class Functions
 {
@@ -28,8 +30,8 @@ public:
 		double x1 = params[0];
 		double x2 = params[1];
 	
-		double derivedX1 = (exp(2*x1) - x2*exp(x1) + x1) / sqrt(pow(x1, 2) + pow((exp(x1) - x2), 2));
-		double derivedX2 = (x2 - exp(x1)) / sqrt(pow(x1, 2) + pow((exp(x1) - x2), 2));
+		double derivedX1 = (exp(2*x1) - x2*exp(x1) + x1) / (sqrt(pow(x1, 2) - 2*exp(x1)*x2 + exp(2*x1) + pow(x2,2)));
+		double derivedX2 = (x2 - exp(x1)) / (sqrt(pow(x1, 2) + pow((exp(x1) - x2), 2)));
 	
 		vector<double> result;
 		result.push_back(derivedX1);
@@ -38,20 +40,31 @@ public:
 		return result;
 	}
 
-
-	// TO DO!!!!!!!
-	static vector<double> function1SecondDerivate (vector<double> params)
+	static MatrixXd function1SecondDerivate (vector<double> params)
 	{
 		double x1 = params[0];
 		double x2 = params[1];
 
-		// TO DO!!!!!!!!
-		double derivedX1 = 0.0;
-		double derivedX2 = 0.0;
+		double derivedX1X1 = (2*exp(x1)*(exp(x1) - x2) + 2*exp(2*x1) + 2)/(2*sqrt(pow(x1,2) + pow((exp(x1) - x2),2)));
+		derivedX1X1        = derivedX1X1 - (pow((2*exp(x1)*(exp(x1) - x2) + 2*x1), 2)/(4*pow(pow(x1,2) + pow(exp(x1) - x2,2), 3.0/2)));
 
-		vector<double> result;
-		result.push_back(derivedX1);
-		result.push_back(derivedX2);
+		double derivedX1X2 = ((2*exp(x1)*(exp(x1) - x2)+2*x1) * (exp(x1)  - x2))/(2*pow(pow(x1, 2) + pow(exp(x1) - x2, 2), 3.0/2));
+		derivedX1X2        = derivedX1X2 - exp(x1)/(sqrt(pow(x1,2) + pow(exp(x1)- x2, 2)));
+
+		double derivedX2X1 = ((2*exp(x1)*(exp(x1) - x2) + 2*x1) * (exp(x1) -x2))/(2*pow(pow(x1,2) + pow(exp(x1) -x2, 2), 3.0/2));
+		derivedX2X1        = derivedX2X1 - exp(x1)/ sqrt(pow(x1,2) + pow(exp(x1) - x2, 2));
+		
+		
+		double derivedX2X2 = 1/(sqrt(pow(x1,2) + pow(exp(x1) - x2,2)));
+		derivedX2X2        = derivedX2X2 - (pow(exp(x1) - x2, 2)/(pow((pow(x1,2) + pow(exp(x1) - x2, 2)), 3.0/2)));
+
+		MatrixXd result(2,2);
+
+		result(0,0) = derivedX1X1;
+		result(0,1) = derivedX1X2; // d2f/fx1 dx2
+		result(1,0) = derivedX2X1;
+		result(1,1) = derivedX2X2;
+
 	
 		return result;
 	}
@@ -81,18 +94,22 @@ public:
 		return result;
 	}
 
-	static vector<double> function2SecondDerivate (vector<double> params)
+	// TO DO!!!!!!!!
+	static MatrixXd function2SecondDerivate (vector<double> params)
 	{
 		double x1 = params[0];
 		double x2 = params[1];
 		double x3 = params[2];
 
-		double derived = -1.0 * (1 / (4 * pow (x1 + x2 + x3, 3.0/2)));
+		double derivedX1X1 = -1.0 * (1 / (4 * pow (x1 + x2 + x3, 3.0/2)));
+		double derivedX2X2 = derivedX1X1;
+		double derivedX3X3 = derivedX1X1;
 
-		vector<double> result;
-		result.push_back(derived);
-		result.push_back(derived);
-		result.push_back(derived);
+		MatrixXd result(3,3);
+		
+		result(0,0) = derivedX1X1;
+		result(1,1) = derivedX2X2;
+		result(2,2) = derivedX3X3;
 	
 		return result;
 	}
