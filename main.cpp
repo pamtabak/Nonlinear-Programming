@@ -55,7 +55,6 @@ bool vectorHasChanged (vector<double> x0, vector<double> x1, double eps)
 	return true;
 }
 
-// CHECAR SE A FUNCAO E UNIMODAL
 double goldenSectionSearch (double eps, double ro, vector<double> x0, vector<double> d, double (*function)(vector<double>))
 {
 	double teta1 = (3.0 - sqrt(5))/2;
@@ -141,34 +140,55 @@ vector<double> newtonMethod (vector<double> x0,int iterationLimit, double ro, do
 		cout << "current interaction: ";
 		cout << k << endl;
 
-		vector<double> firstDerivate  = derivedFunction(xk);
-		MatrixXd secondDerivateMatrix = secondDerivateFunction(xk);
-		MatrixXd firstDerivateMatrix(firstDerivate.size(), 1);
-		
-		for (int i = 0; i < firstDerivate.size(); i++)
-		{
-			firstDerivateMatrix(i,0) = firstDerivate[i];
-		}
+		vector<double> firstDerivate         = derivedFunction(xk);
+		MatrixXd secondDerivateMatrix        = secondDerivateFunction(xk);	
+		MatrixXd secondDerivateMatrixInverse = secondDerivateMatrix.inverse();
 
-		MatrixXd dkMatrix = (secondDerivateMatrix.inverse())*firstDerivateMatrix;
-		cout << dkMatrix << endl;
 		vector<double> dk;
-		for (int i = 0; i < firstDerivate.size(); i++)
+
+		for (int i = 0; i < secondDerivateMatrixInverse.rows(); i++)
 		{
-			dk.push_back(-1.0*dkMatrix(i,0));
+			double value = 0.0;
+			for (int j = 0; j < firstDerivate.size(); j++)
+			{
+				value += secondDerivateMatrixInverse(i,j)*firstDerivate[j];
+			}
+			dk.push_back(-1.0*value);
 		}
 		
 		double tk = goldenSectionSearch(0.00001, ro, xk, dk, function);
-		cout << tk << endl;
 
 		for (int i = 0; i < xk.size(); i++)
 		{
 			lastXk[i] = xk[i];
 			xk[i]     = xk[i] + tk*dk[i];
-			//cout << xk[i] << endl;
 		}
 		k = k + 1;
 
+		if (!vectorHasChanged(lastXk, xk, 0.0001))
+		{
+			break;
+		}
+	}
+
+	return xk;
+}
+
+vector<double> quasiNewtonMethod (vector<double> x0, int iterationLimit, double ro, double (*function)(vector<double>), vector<double> (*derivedFunction)(vector<double>), MatrixXd (*secondDerivateFunction)(vector<double>))
+{
+	cout << "started quasi-newton method" << endl;
+	int k                 = 0;
+	vector<double> lastXk = x0;
+	vector<double> xk     = x0;
+
+	while (!vectorIsZero(derivedFunction(xk), 0.001) && k <= iterationLimit)
+	{
+		cout << "current interaction: ";
+		cout << k << endl;
+
+		// TO DO
+
+		k = k + 1;
 		if (!vectorHasChanged(lastXk, xk, 0.0001))
 		{
 			break;
@@ -182,15 +202,36 @@ int main(int argc, char const *argv[])
 {
 
 	Functions functions;
+	double (*function)(vector<double>);
+	vector<double> (*functionFirstDerivative)(vector<double>);
+	MatrixXd (*functionSecondDerivative)(vector<double>);
 
 	vector<double> x0;
-	x0.push_back(0.3);
-	x0.push_back(1.3);
 
-	if (argc != 2)
+	if (argc < 2)
 	{
 		cout << "wrong number of parameters" << endl;
 		exit(0);
+	}
+
+	if (argc - 2 == 2)
+	{
+		// Function 1
+		function                  = functions.function1;
+		functionFirstDerivative   = functions.function1FirstDerivative;
+		functionSecondDerivative  = functions.function1SecondDerivative;
+		x0.push_back(atof(argv[2]));
+		x0.push_back(atof(argv[3]));
+	}
+	else if (argc - 2 == 3)
+	{
+		// Function 2
+		function                  = functions.function2;
+		functionFirstDerivative   = functions.function2FirstDerivative;
+		functionSecondDerivative  = functions.function2SecondDerivative;
+		x0.push_back(atof(argv[2]));
+		x0.push_back(atof(argv[3]));
+		x0.push_back(atof(argv[4]));
 	}
 
 	vector<double> min;
@@ -199,11 +240,11 @@ int main(int argc, char const *argv[])
 	
 	if (method == "Gradient")
 	{
-		min = gradientMethod(x0, 100, 5, functions.function1, functions.function1FirstDerivative);
+		min = gradientMethod(x0, 100, 5, function, functionFirstDerivative);
 	}
 	else if (method == "Newton")
 	{
-		min = newtonMethod(x0, 100, 1.0, functions.function1, functions.function1FirstDerivative, functions.function1SecondDerivate);
+		min = newtonMethod(x0, 100, 1.0, function, functionFirstDerivative, functionSecondDerivative);
 	}
 	else if (method == "Quasi-Newtown")
 	{

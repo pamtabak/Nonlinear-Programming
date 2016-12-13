@@ -40,7 +40,7 @@ public:
 		return result;
 	}
 
-	static MatrixXd function1SecondDerivate (vector<double> params)
+	static MatrixXd function1SecondDerivative (vector<double> params)
 	{
 		double x1 = params[0];
 		double x2 = params[1];
@@ -61,7 +61,7 @@ public:
 		MatrixXd result(2,2);
 
 		result(0,0) = derivedX1X1;
-		result(0,1) = derivedX1X2; // d2f/fx1 dx2
+		result(0,1) = derivedX1X2;
 		result(1,0) = derivedX2X1;
 		result(1,1) = derivedX2X2;
 
@@ -94,22 +94,23 @@ public:
 		return result;
 	}
 
-	// TO DO!!!!!!!!
-	static MatrixXd function2SecondDerivate (vector<double> params)
+	static MatrixXd function2SecondDerivative (vector<double> params)
 	{
 		double x1 = params[0];
 		double x2 = params[1];
 		double x3 = params[2];
 
-		double derivedX1X1 = -1.0 * (1 / (4 * pow (x1 + x2 + x3, 3.0/2)));
-		double derivedX2X2 = derivedX1X1;
-		double derivedX3X3 = derivedX1X1;
+		double derivate = -1.0 * (1 / (4 * pow (x1 + x2 + x3, 3.0/2)));
 
 		MatrixXd result(3,3);
 		
-		result(0,0) = derivedX1X1;
-		result(1,1) = derivedX2X2;
-		result(2,2) = derivedX3X3;
+		for (int i = 0; i < 3; i++)
+		{
+			for (int j = 0; j < 3; j++)
+			{
+				result(i,j) = derivate;
+			}
+		}
 	
 		return result;
 	}
