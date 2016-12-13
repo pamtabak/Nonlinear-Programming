@@ -129,37 +129,54 @@ vector<double> gradientMethod (vector<double> x0, int iterationLimit, double ro,
 	return xk;
 }
 
-// vector<double> newtonMethod (vector<double> x0,int iterationLimit, double ro, double (*function)(vector<double>), vector<double> (*derivedFunction)(vector<double>))
-// {
-// 	cout << "started newton method" << endl;
-// 	int k                 = 0;
-// 	vector<double> lastXk = x0;
-// 	vector<double> xk     = x0;
+vector<double> newtonMethod (vector<double> x0,int iterationLimit, double ro, double (*function)(vector<double>), vector<double> (*derivedFunction)(vector<double>), MatrixXd (*secondDerivateFunction)(vector<double>))
+{
+	cout << "started newton method" << endl;
+	int k                 = 0;
+	vector<double> lastXk = x0;
+	vector<double> xk     = x0;
 
-// 	while (!vectorIsZero(derivedFunction(xk), 0.001) && k <= iterationLimit)
-// 	{
-// 		cout << "current interaction: ";
-// 		cout << k << endl;
+	while (!vectorIsZero(derivedFunction(xk), 0.001) && k <= iterationLimit)
+	{
+		cout << "current interaction: ";
+		cout << k << endl;
 
-// 		// Calcular dk -> Precisa da 2 derivada
-// 		// Calcular segunda derivada
-// 		vector<double> dk;
+		vector<double> firstDerivate  = derivedFunction(xk);
+		MatrixXd secondDerivateMatrix = secondDerivateFunction(xk);
+		MatrixXd firstDerivateMatrix(firstDerivate.size(), 1);
 		
-// 		double tk = goldenSectionSearch(0.00001, 5, xk, dk, function);
+		for (int i = 0; i < firstDerivate.size(); i++)
+		{
+			firstDerivateMatrix(i,0) = firstDerivate[i];
+		}
 
-// 		for (int i = 0; i < xk.size(); i++)
-// 		{
-// 			lastXk[i] = xk[i];
-// 			xk[i]     = xk[i] + tk*dk[i];
-// 		}
-// 		k = k + 1;
+		MatrixXd dkMatrix = (secondDerivateMatrix.inverse())*firstDerivateMatrix;
+		cout << dkMatrix << endl;
+		vector<double> dk;
+		for (int i = 0; i < firstDerivate.size(); i++)
+		{
+			dk.push_back(-1.0*dkMatrix(i,0));
+		}
+		
+		double tk = goldenSectionSearch(0.00001, ro, xk, dk, function);
+		cout << tk << endl;
 
-// 		if (!vectorHasChanged(lastXk, xk, 0.00001))
-// 		{
-// 			break;
-// 		}
-// 	}
-// }
+		for (int i = 0; i < xk.size(); i++)
+		{
+			lastXk[i] = xk[i];
+			xk[i]     = xk[i] + tk*dk[i];
+			//cout << xk[i] << endl;
+		}
+		k = k + 1;
+
+		if (!vectorHasChanged(lastXk, xk, 0.0001))
+		{
+			break;
+		}
+	}
+
+	return xk;
+}
 
 int main(int argc, char const *argv[])
 {
@@ -167,8 +184,8 @@ int main(int argc, char const *argv[])
 	Functions functions;
 
 	vector<double> x0;
-	x0.push_back(2.0);
-	x0.push_back(1.0);
+	x0.push_back(0.3);
+	x0.push_back(1.3);
 
 	if (argc != 2)
 	{
@@ -186,7 +203,7 @@ int main(int argc, char const *argv[])
 	}
 	else if (method == "Newton")
 	{
-
+		min = newtonMethod(x0, 100, 1.0, functions.function1, functions.function1FirstDerivative, functions.function1SecondDerivate);
 	}
 	else if (method == "Quasi-Newtown")
 	{
