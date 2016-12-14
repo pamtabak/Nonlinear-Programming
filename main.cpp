@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "functions.cpp"
+#include "bfgs.cpp"
 #include <Eigen/Dense>
 
 using namespace std;
@@ -16,8 +17,6 @@ using namespace Eigen;
 // phi(t) = f(x + t*d)
 double phi (double t, vector<double> x, vector<double> d, double (*function)(vector<double>))
 {
-	// O phi(t) será sua f(x + t*d)
-	// y = x + t*d
 	vector<double> y;
 	for (int i = 0; i < x.size(); i++)
 	{
@@ -53,6 +52,30 @@ bool vectorHasChanged (vector<double> x0, vector<double> x1, double eps)
 		return false;
 	}
 	return true;
+}
+
+vector<vector<double> > initializeHkMatrix (int size)
+{
+	// We initialize the matrix Hk with the Identity Matrix
+	vector<vector<double> > hk;
+	for (int i = 0; i < size; i++)
+	{
+		vector<double> row;
+		for (int j = 0; j < size; j++)
+		{
+			if (i == j)
+			{
+				row.push_back(1.0);
+			}
+			else
+			{
+				row.push_back(0.0);
+			}
+		}
+		hk.push_back(row);
+	}
+
+	return hk;
 }
 
 double goldenSectionSearch (double eps, double ro, vector<double> x0, vector<double> d, double (*function)(vector<double>))
@@ -174,25 +197,63 @@ vector<double> newtonMethod (vector<double> x0,int iterationLimit, double ro, do
 	return xk;
 }
 
-vector<double> quasiNewtonMethod (vector<double> x0, int iterationLimit, double ro, double (*function)(vector<double>), vector<double> (*derivedFunction)(vector<double>), MatrixXd (*secondDerivateFunction)(vector<double>))
+vector<double> quasiNewtonMethod (vector<double> x0, int iterationLimit, double ro, double (*function)(vector<double>), vector<double> (*derivedFunction)(vector<double>))
 {
 	cout << "started quasi-newton method" << endl;
 	int k                 = 0;
 	vector<double> lastXk = x0;
 	vector<double> xk     = x0;
 
-	while (!vectorIsZero(derivedFunction(xk), 0.001) && k <= iterationLimit)
+	BFGS bfgs;
+
+	// We initialize the matrix Hk with the Identity Matrix
+	vector<vector<double> > hk = initializeHkMatrix(x0.size());
+
+	vector<double> firstDerivative     = derivedFunction(xk);
+	vector<double> lastFirstDerivative = firstDerivative;
+
+	while (!vectorIsZero(firstDerivative, 0.001) && k <= iterationLimit)
 	{
 		cout << "current interaction: ";
 		cout << k << endl;
 
-		// TO DO
+		vector<double> dk;
+		for (int i = 0; i < hk.size(); i++)
+		{
+			double value = 0.0;
+			for (int j = 0; j < firstDerivative.size(); j++)
+			{
+				value += hk[i][j]*firstDerivative[j];
+			}
+			dk.push_back(-1.0 * value);
+		}
 
-		k = k + 1;
+		double tk = goldenSectionSearch(0.00001, ro, xk, dk, function);
+		for (int i = 0; i < xk.size(); i++)
+		{
+			lastXk[i] = xk[i];
+			xk[i]     = xk[i] + tk*dk[i];
+		}
+
 		if (!vectorHasChanged(lastXk, xk, 0.0001))
 		{
 			break;
 		}
+
+		// Update Hk
+		lastFirstDerivative = firstDerivative;
+		firstDerivative     = derivedFunction(xk);
+		vector<double> pk;
+		vector<double> qk;
+		for (int i = 0; i < xk.size(); i++)
+		{
+			pk.push_back(xk[i] - lastXk[i]);
+			qk.push_back(firstDerivative[i] - lastFirstDerivative[i]);
+		}
+
+		hk = bfgs.method(hk, pk, qk);
+
+		k = k + 1;
 	}
 
 	return xk;
@@ -206,55 +267,57 @@ int main(int argc, char const *argv[])
 	vector<double> (*functionFirstDerivative)(vector<double>);
 	MatrixXd (*functionSecondDerivative)(vector<double>);
 
+	std::string method(argv[1]);
 	vector<double> x0;
+	vector<double> min;
 
-	if (argc < 2)
+	if (argc < 3)
 	{
 		cout << "wrong number of parameters" << endl;
 		exit(0);
 	}
 
-	if (argc - 2 == 2)
+	int iterationLimit = atoi(argv[2]);
+	double ro = 1.0;
+
+	if (argc - 3 == 2)
 	{
 		// Function 1
 		function                  = functions.function1;
 		functionFirstDerivative   = functions.function1FirstDerivative;
 		functionSecondDerivative  = functions.function1SecondDerivative;
-		x0.push_back(atof(argv[2]));
 		x0.push_back(atof(argv[3]));
+		x0.push_back(atof(argv[4]));
 	}
-	else if (argc - 2 == 3)
+	else if (argc - 3 == 3)
 	{
 		// Function 2
 		function                  = functions.function2;
 		functionFirstDerivative   = functions.function2FirstDerivative;
 		functionSecondDerivative  = functions.function2SecondDerivative;
-		x0.push_back(atof(argv[2]));
 		x0.push_back(atof(argv[3]));
 		x0.push_back(atof(argv[4]));
+		x0.push_back(atof(argv[5]));
 	}
-
-	vector<double> min;
-
-	std::string method(argv[1]);
 	
 	if (method == "Gradient")
 	{
-		min = gradientMethod(x0, 100, 5, function, functionFirstDerivative);
+		min = gradientMethod(x0, iterationLimit, ro, function, functionFirstDerivative);
 	}
 	else if (method == "Newton")
 	{
-		min = newtonMethod(x0, 100, 1.0, function, functionFirstDerivative, functionSecondDerivative);
+		min = newtonMethod(x0, iterationLimit, ro, function, functionFirstDerivative, functionSecondDerivative);
 	}
-	else if (method == "Quasi-Newtown")
+	else if (method == "Quasi-Newton")
 	{
-		
+		min = quasiNewtonMethod(x0, iterationLimit, ro, function, functionFirstDerivative);
 	}
 
 	for (int i = 0; i < min.size(); i++)
 	{
 		cout << min[i] << endl;
-	}	
+	}
+	cout << function(min) << endl;
 	
 	return 0;
 }
