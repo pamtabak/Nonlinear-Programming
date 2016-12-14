@@ -84,12 +84,12 @@ public:
 		double x2 = params[1];
 		double x3 = params[2];
 
-		double derived = 1 / (2 * sqrt(x1 + x2 + x3));
+		double value = 1.0/(2.0*sqrt(x1 + x2 + x3));
 		
 		vector<double> result;
-		result.push_back(derived);
-		result.push_back(derived);
-		result.push_back(derived);
+		result.push_back(value);
+		result.push_back(value);
+		result.push_back(value);
 
 		return result;
 	}

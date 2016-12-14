@@ -270,6 +270,7 @@ int main(int argc, char const *argv[])
 	std::string method(argv[1]);
 	vector<double> x0;
 	vector<double> min;
+	vector<double> realMinVector;
 
 	if (argc < 3)
 	{
@@ -288,6 +289,9 @@ int main(int argc, char const *argv[])
 		functionSecondDerivative  = functions.function1SecondDerivative;
 		x0.push_back(atof(argv[3]));
 		x0.push_back(atof(argv[4]));
+
+		realMinVector.push_back(0.0);
+		realMinVector.push_back(1.0);
 	}
 	else if (argc - 3 == 3)
 	{
@@ -313,11 +317,16 @@ int main(int argc, char const *argv[])
 		min = quasiNewtonMethod(x0, iterationLimit, ro, function, functionFirstDerivative);
 	}
 
+	double error = 0.0;
 	for (int i = 0; i < min.size(); i++)
 	{
 		cout << min[i] << endl;
+		error += pow(realMinVector[i] - min[i], 2);
 	}
 	cout << function(min) << endl;
+	cout << sqrt(error)   << endl;
+
+
 	
 	return 0;
 }
