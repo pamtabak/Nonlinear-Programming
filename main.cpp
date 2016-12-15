@@ -150,11 +150,11 @@ vector<double> gradientMethod (vector<double> x0, int iterationLimit, double ro,
 			lastXk = xkTemp;
 			while(xkSum < 0.0)
 			{
-				xk = xkTemp;
+				xk    = xkTemp;
 				xkSum = 0.0;
 				for(int i = 0; i < dk.size(); i++)
 				{
-					tk = tk*0.9999;
+					tk        = tk*0.9999;
 					xk[i]     = xk[i] + tk*dk[i];
 					xkSum    += xk[i];
 				}
@@ -222,7 +222,7 @@ vector<double> newtonMethod (vector<double> x0,int iterationLimit, double ro, do
 	return xk;
 }
 
-vector<double> quasiNewtonMethod (vector<double> x0, int iterationLimit, double ro, double (*function)(vector<double>), vector<double> (*derivedFunction)(vector<double>))
+vector<double> quasiNewtonMethod (vector<double> x0, int iterationLimit, double ro, double (*function)(vector<double>), vector<double> (*derivedFunction)(vector<double>), bool restricted = false)
 {
 	cout << "started quasi-newton method" << endl;
 	int k                 = 0;
@@ -254,16 +254,39 @@ vector<double> quasiNewtonMethod (vector<double> x0, int iterationLimit, double 
 		}
 
 		double tk = goldenSectionSearch(0.00001, ro, xk, dk, function);
+
+		double xkSum = 0.0;
+		vector<double> xkTemp = lastXk;
+
 		for (int i = 0; i < xk.size(); i++)
 		{
 			lastXk[i] = xk[i];
 			xk[i]     = xk[i] + tk*dk[i];
+			xkSum    += xk[i];
+		}
+
+		if(restricted && xkSum < 0.0)
+		{
+			lastXk = xkTemp;
+			while(xkSum < 0.0)
+			{
+				xk    = xkTemp;
+				xkSum = 0.0;
+				for(int i = 0; i < dk.size(); i++)
+				{
+					tk        = tk*0.9999;
+					xk[i]     = xk[i] + tk*dk[i];
+					xkSum    += xk[i];
+				}
+			}
 		}
 
 		if (!vectorHasChanged(lastXk, xk, 0.0001))
 		{
 			break;
 		}
+
+		
 
 		// Update Hk
 		lastFirstDerivative = firstDerivative;
@@ -277,6 +300,8 @@ vector<double> quasiNewtonMethod (vector<double> x0, int iterationLimit, double 
 		}
 
 		hk = bfgs.method(hk, pk, qk);
+
+		lastXk = xk;
 
 		k = k + 1;
 	}
@@ -322,7 +347,6 @@ int main(int argc, char const *argv[])
 	else if (argc - 3 == 3)
 	{
 		// Function 
-		cout << "entrei" << endl;
 		function                  = functions.function2;
 		functionFirstDerivative   = functions.function2FirstDerivative;
 		functionSecondDerivative  = functions.function2SecondDerivative;
@@ -346,7 +370,7 @@ int main(int argc, char const *argv[])
 	}
 	else if (method == "Quasi-Newton")
 	{
-		min = quasiNewtonMethod(x0, iterationLimit, ro, function, functionFirstDerivative);
+		min = quasiNewtonMethod(x0, iterationLimit, ro, function, functionFirstDerivative, restricted);
 	}
 
 	double error = 0.0;
@@ -356,9 +380,11 @@ int main(int argc, char const *argv[])
 		error += pow(realMinVector[i] - min[i], 2);
 	}
 	cout << function(min) << endl;
-	cout << sqrt(error)   << endl;
 
-
+	if(!restricted)
+	{
+		cout << sqrt(error) << endl;
+	}
 	
 	return 0;
 }
