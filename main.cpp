@@ -115,7 +115,7 @@ double goldenSectionSearch (double eps, double ro, vector<double> x0, vector<dou
 	return (u+v)/2;
 }
 
-vector<double> gradientMethod (vector<double> x0, int iterationLimit, double ro, double (*function)(vector<double>), vector<double> (*derivedFunction)(vector<double>))
+vector<double> gradientMethod (vector<double> x0, int iterationLimit, double ro, double (*function)(vector<double>), vector<double> (*derivedFunction)(vector<double>), bool restricted = false)
 {
 	cout << "started gradient method" << endl;
 	int k                 = 0;
@@ -124,7 +124,7 @@ vector<double> gradientMethod (vector<double> x0, int iterationLimit, double ro,
 
 	while (!vectorIsZero(derivedFunction(xk), 0.001) && k <= iterationLimit)
 	{
-		cout << "current interaction: ";
+		cout << "current iteraction: ";
 		cout << k << endl;
 
 		vector<double> dk = derivedFunction(xk);
@@ -134,18 +134,41 @@ vector<double> gradientMethod (vector<double> x0, int iterationLimit, double ro,
 		}
 		
 		double tk = goldenSectionSearch(0.00001, ro, xk, dk, function);
-
+		
+		double xkSum = 0.0;
+		vector<double> xkTemp = lastXk;
+		
 		for (int i = 0; i < xk.size(); i++)
 		{
 			lastXk[i] = xk[i];
 			xk[i]     = xk[i] + tk*dk[i];
+			xkSum    += xk[i];
 		}
+
+		if(restricted && xkSum < 0.0)
+		{
+			lastXk = xkTemp;
+			while(xkSum < 0.0)
+			{
+				xk = xkTemp;
+				xkSum = 0.0;
+				for(int i = 0; i < dk.size(); i++)
+				{
+					tk = tk*0.9999;
+					xk[i]     = xk[i] + tk*dk[i];
+					xkSum    += xk[i];
+				}
+			}
+		}
+
 		k = k + 1;
 
-		if (!vectorHasChanged(lastXk, xk, 0.00001))
+		if (!vectorHasChanged(lastXk, xk, 0.001))
 		{
 			break;
 		}
+
+		lastXk = xk;
 	}
 
 	return xk;
@@ -160,13 +183,13 @@ vector<double> newtonMethod (vector<double> x0,int iterationLimit, double ro, do
 
 	while (!vectorIsZero(derivedFunction(xk), 0.001) && k <= iterationLimit)
 	{
-		cout << "current interaction: ";
+		cout << "current iteraction: ";
 		cout << k << endl;
 
 		vector<double> firstDerivate         = derivedFunction(xk);
 		MatrixXd secondDerivateMatrix        = secondDerivateFunction(xk);	
 		MatrixXd secondDerivateMatrixInverse = secondDerivateMatrix.inverse();
-
+		cout << secondDerivateMatrix << endl;
 		vector<double> dk;
 
 		for (int i = 0; i < secondDerivateMatrixInverse.rows(); i++)
@@ -180,12 +203,14 @@ vector<double> newtonMethod (vector<double> x0,int iterationLimit, double ro, do
 		}
 		
 		double tk = goldenSectionSearch(0.00001, ro, xk, dk, function);
+		
 
 		for (int i = 0; i < xk.size(); i++)
 		{
 			lastXk[i] = xk[i];
 			xk[i]     = xk[i] + tk*dk[i];
 		}
+
 		k = k + 1;
 
 		if (!vectorHasChanged(lastXk, xk, 0.0001))
@@ -214,7 +239,7 @@ vector<double> quasiNewtonMethod (vector<double> x0, int iterationLimit, double 
 
 	while (!vectorIsZero(firstDerivative, 0.001) && k <= iterationLimit)
 	{
-		cout << "current interaction: ";
+		cout << "current iteraction: ";
 		cout << k << endl;
 
 		vector<double> dk;
@@ -279,7 +304,8 @@ int main(int argc, char const *argv[])
 	}
 
 	int iterationLimit = atoi(argv[2]);
-	double ro = 1.0;
+	double ro = 1;
+	bool restricted = false;
 
 	if (argc - 3 == 2)
 	{
@@ -295,18 +321,24 @@ int main(int argc, char const *argv[])
 	}
 	else if (argc - 3 == 3)
 	{
-		// Function 2
+		// Function 
+		cout << "entrei" << endl;
 		function                  = functions.function2;
 		functionFirstDerivative   = functions.function2FirstDerivative;
 		functionSecondDerivative  = functions.function2SecondDerivative;
 		x0.push_back(atof(argv[3]));
 		x0.push_back(atof(argv[4]));
 		x0.push_back(atof(argv[5]));
+
+		realMinVector.push_back(0.0);
+		realMinVector.push_back(0.0);
+		realMinVector.push_back(0.0);
+		restricted = true;
 	}
 	
 	if (method == "Gradient")
 	{
-		min = gradientMethod(x0, iterationLimit, ro, function, functionFirstDerivative);
+		min = gradientMethod(x0, iterationLimit, ro, function, functionFirstDerivative, restricted);
 	}
 	else if (method == "Newton")
 	{
